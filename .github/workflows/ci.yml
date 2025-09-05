@@ -5,16 +5,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Cache CCache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+      
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y cmake g++
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ ccache
+      
+      - name: Setup CCache
+        run: |
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+          echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+      
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      
       - name: Build
         run: cmake --build build -j
+      
       - name: Create test data
         run: |
           mkdir -p test_data
           echo "алгоритм поиска" > test_data/notes1.txt
           echo "данные алгоритм" > test_data/notes2.txt 
+      
       - name: Run binary
         run: ./build/stlfind test_data "алгоритм"
